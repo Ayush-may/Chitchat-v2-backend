@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getAllUsers, getUserByUid, createUser, login, addFriendByUid, getLoggedUserFriends, getAllLoggedUserNoFriends, getLoggedUserAndSelectedUserMessages, setLoggedUserAndSelectedUserMessages } = require("../controllers/userController");
+const { getAllUsers, getUserByUid, createUser, login, addFriendByUid, getLoggedUserFriends, getAllLoggedUserNoFriends, getLoggedUserAndSelectedUserMessages, setLoggedUserAndSelectedUserMessages, changeOnlineStatusToOffline } = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 /**
@@ -77,4 +77,6 @@ router.get("/:loggedUid/messages/:selectedUid", getLoggedUserAndSelectedUserMess
 
 router.post("/:loggedUid/messages/:selectedUid", setLoggedUserAndSelectedUserMessages);
 
+
+router.put("/to_offline/:uid", changeOnlineStatusToOffline);
 module.exports = router;

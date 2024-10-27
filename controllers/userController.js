@@ -54,6 +54,9 @@ const login = async (req, res) => {
     if (!(await bcrypt.compare(req.body.password, user.password)))
       throw new Error();
 
+    user.is_online = "online";
+    await user.save();
+
     const token = jwt.sign({ uid: user.uid }, process.env.JWT_KEY, { expiresIn: "1h" });
 
     res.cookie(
@@ -66,7 +69,8 @@ const login = async (req, res) => {
     return res.status(200).json({
       uid: user.uid,
       username: user.username,
-      token
+      token,
+      is_online: user.is_online
     });
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -83,7 +87,8 @@ const createUser = async (req, res) => {
       uid: nanoid(),
       username: req.body.username.toLowerCase(),
       password: await bcrypt.hash(req.body.password, 10),
-      profile_pic: `https://avatar.iran.liara.run/username?username=${req.body.username}`
+      profile_pic: `https://avatar.iran.liara.run/username?username=${req.body.username}`,
+      is_online: "online"
     });
 
     const token = jwt.sign({ uid: newUser.uid }, process.env.JWT_KEY, { expiresIn: "1h" });
@@ -143,7 +148,9 @@ const getLoggedUserFriends = async (req, res) => {
     if (!user || user.friends.length == 0)
       return res.status(400).json({ message: "No friends" });
 
-    const friends = await User.find({ uid: { $in: user.friends } }, "uid username status profile_pic created_at");
+    const friends = await User.find({ uid: { $in: user.friends } },
+      "uid username status profile_pic created_at is_online"
+    );
 
     return res.status(200).json(friends);
   } catch (error) {
@@ -227,6 +234,7 @@ const getLoggedUserAndSelectedUserMessages = async (req, res) => {
       {
         $project: { // Specify the fields to include
           _id: 1, // Include message ID
+          mid: 1,
           sender: 1, // Include sender ID
           reciever: 1, // Include receiver ID
           text: 1, // Include message text
@@ -244,7 +252,6 @@ const getLoggedUserAndSelectedUserMessages = async (req, res) => {
       }
     ]);
 
-
     return res.status(200).json(messages);
   } catch (error) {
     return res.status(400).json(error.message);
@@ -257,21 +264,45 @@ const setLoggedUserAndSelectedUserMessages = async (req, res) => {
     const reciever = req.params.selectedUid;
     const text = req.body.text;
 
-    const newMessage = new Message({
+    const newMessage1 = new Message({
       mid: nanoid(),
       sender,
       reciever,
       text,
     });
 
-    await newMessage.save();
+    // const newMessage2 = new Message({
+    //   mid: nanoid(),
+    //   sender: reciever,
+    //   reciever: sender,
+    //   text,
+    // });
 
-    return res.status(200).json(newMessage);
+    await newMessage1.save();
+    // await newMessage2.save();
+
+    return res.status(200).json(newMessage1);
+    // return res.status(200).json([newMessage1, newMessage2]);
   } catch (error) {
     return res.status(400).json(error.message);
   }
 }
 
+
+const changeOnlineStatusToOffline = async (req, res) => {
+  try {
+    const uid = req.params.uid;
+
+    const user = await User.findOne({ uid });
+    user.is_online = "offline";
+
+    await user.save();
+
+    return res.status(200).json(user);
+  } catch (error) {
+    return res.status(400).json(error.message);
+  }
+}
 module.exports = {
   getAllUsers,
   getUserByUid,
@@ -281,5 +312,6 @@ module.exports = {
   getLoggedUserFriends,
   getAllLoggedUserNoFriends,
   getLoggedUserAndSelectedUserMessages,
-  setLoggedUserAndSelectedUserMessages
+  setLoggedUserAndSelectedUserMessages,
+  changeOnlineStatusToOffline
 }

@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 app.use(cors({
   credentials: true,
-  origin: "http://localhost:3000"
+  origin: process.env.FRONTEND_URL || "http://localhost:3000"
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

@@ -38,6 +38,12 @@ const userSchema = mongoose.Schema({
     type: String,
   }
   ,
+  is_online: {
+    type: String,
+    enum: ["online", "offline"],
+    default: "online"
+  }
+  ,
   friends: [String]
   ,
   messages: [{
