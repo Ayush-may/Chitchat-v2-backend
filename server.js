@@ -15,8 +15,6 @@ const server = http.createServer(app);
 initializeSocketIo(server);
 
 app.use(cors({
-  // credentials: true,
-  // origin: process.env.FRONTEND_URL || "http://localhost:3000"
   origin: "*"
 }));
 app.use(express.urlencoded({ extended: true }));
@@ -30,7 +28,6 @@ app.get("/test", (req, res) => {
 
 app.use("/api/users", userRouter);
 app.use("/api/messages", messageRouter);
-
 
 const port = process.env.PORT || 7000;
 server.listen(port, () => console.log(`Listening on port ${port}`));
