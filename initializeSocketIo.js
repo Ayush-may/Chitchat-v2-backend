@@ -1,11 +1,6 @@
 const { Server } = require("socket.io");
 const userModel = require("./models/userModel");
 
-// {
-//  id
-//  clientId
-// }
-
 const map = new Map();
 const mapRev = new Map();
 
@@ -22,6 +17,7 @@ function initializeSocketIo(server) {
   console.log('Client connected:', socket.id);
 
   socket.on('welcome', (data) => {
+   console.log('welcome data comes')
    updateUserStatus(data.uid, 'online')
    map.set(data.uid, socket.id)
    mapRev.set(socket.id, data.uid)
@@ -32,8 +28,13 @@ function initializeSocketIo(server) {
    socket.broadcast.emit('message', data); // send to others
   });
 
-  socket.on('disconnect', () => {
+  socket.on('logout', (data) => {
+   // mapRev.delete(socket.id)
+   // map.delete(disUID)
+   updateUserStatus(data.uid, 'offline')
+  })
 
+  socket.on('disconnect', () => {
    const disUID = mapRev.get(socket.id)
    mapRev.delete(socket.id)
    map.delete(disUID)
@@ -42,11 +43,17 @@ function initializeSocketIo(server) {
  });
 }
 
+
 const updateUserStatus = async (UID, status) => {
- await userModel.findOneAndUpdate(
-  { uid: UID },
-  { $set: { is_online: status } }
- );
+ try {
+  await userModel.findOneAndUpdate(
+   { uid: UID },
+   { $set: { is_online: status } },
+   { new: true }
+  );
+ } catch (error) {
+  console.log(error)
+ }
  console.log('status is updated ')
 }
 
