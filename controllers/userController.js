@@ -47,6 +47,7 @@ const getUserByUid = async (req, res) => {
 
 const login = async (req, res) => {
   try {
+    console.log('here in backend')
     const user = await User.findOne({ username: req.body.username.toLowerCase() });
 
     if (!user) throw new Error("User is not present");

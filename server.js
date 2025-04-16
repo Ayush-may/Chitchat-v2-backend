@@ -7,15 +7,17 @@ const messageRouter = require("./routes/messageRoutes");
 const WebSocket = require("ws");
 const http = require("http");
 const initializeWebSocket = require("./utils/initializeWebSocket");
+const { initializeSocketIo } = require("./initializeSocketIo");
 
 const app = express();
 const server = http.createServer(app);
 
-// initializeWebSocket(server);
+initializeSocketIo(server);
 
 app.use(cors({
-  credentials: true,
-  origin: process.env.FRONTEND_URL || "http://localhost:3000"
+  // credentials: true,
+  // origin: process.env.FRONTEND_URL || "http://localhost:3000"
+  origin: "*"
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
