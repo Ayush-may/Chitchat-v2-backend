@@ -32,7 +32,7 @@ const messageSchema = mongoose.Schema({
   ,
   send_at: {
     type: Date,
-    default: Date.now()
+    default: Date.now
   }
   ,
   is_read: {

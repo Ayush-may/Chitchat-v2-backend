@@ -14,33 +14,62 @@ function initializeSocketIo(server) {
  });
 
  io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  // console.log('Client connected:', socket.id);
 
   socket.on('welcome', (data) => {
-   console.log('welcome data comes')
-   updateUserStatus(data.uid, 'online')
-   map.set(data.uid, socket.id)
-   mapRev.set(socket.id, data.uid)
+   if (socket.id) {
+    console.log('welcome data comes', data)
+    updateUserStatus(data.uid, 'online')
+    map.set(data.uid, socket.id)
+    mapRev.set(socket.id, data.uid)
+   }
   })
 
-  socket.on('message', (data) => {
-   console.log('Message from client:', data);
-   socket.broadcast.emit('message', data); // send to others
-  });
 
-  socket.on('logout', (data) => {
-   // mapRev.delete(socket.id)
-   // map.delete(disUID)
+
+  // socket.on('message', (data) => {
+  //  console.log('Message from client:', data);
+  //  socket.broadcast.emit('message', data); 
+  // });
+
+
+  socket.on('message_send', (data) => {
+   // user is online
+   if (map.has(data.rid)) {
+    console.log('user is online')
+    console.log(data)
+    const receiveSocketId = map.get(data.rid);
+    io.to(receiveSocketId).emit('message_receive', data)
+   }
+   // handle offline messages
+   else {
+    console.log('user is offline')
+   }
+
+  })
+
+
+
+  socket.on('logout_user', (data) => {
+   console.log('user is loggged out', data)
    updateUserStatus(data.uid, 'offline')
+   const socketid = map.get(data.uid)
+   map.delete(data.uid)
+   mapRev.delete(socketid)
   })
+
+
 
   socket.on('disconnect', () => {
+   // console.log('Client disconnected: ', socket.id)
    const disUID = mapRev.get(socket.id)
    mapRev.delete(socket.id)
    map.delete(disUID)
    updateUserStatus(disUID, 'offline')
   });
+
  });
+
 }
 
 

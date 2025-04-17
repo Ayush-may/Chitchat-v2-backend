@@ -30,17 +30,19 @@ const getAllUsers = async (req, res) => {
 
 const getUserByUid = async (req, res) => {
   try {
-    const user = await User.findOne({ username: req.params.username })
+    console.log(req.params.uid)
+    const user = await User.findOne({ username: req.params.uid })
 
     checkUserExist(user);
     const { uid, username, created_at, profile_pic, status } = user;
 
     return res.status(200).json({
-      uid,
-      username,
-      status,
-      profile_pic,
-      created_at
+      // uid,
+      // username,
+      // status,
+      // profile_pic,
+      // created_at
+      ...user._doc
     });
   }
   catch (error) {
@@ -252,7 +254,7 @@ const getLoggedUserAndSelectedUserMessages = async (req, res) => {
         }
       },
       { $sort: { send_at: -1 } },  // newest first
-      { $limit: 10 },              // take latest 10
+      { $limit: 50 },              // take latest 10
       { $sort: { send_at: 1 } },
     ]);
 
@@ -276,12 +278,14 @@ const setLoggedUserAndSelectedUserMessages = async (req, res) => {
     const sender = req.params.loggedUid;
     const reciever = req.params.selectedUid;
     const text = req.body.text;
+    const send_at = req.body.send_at
 
     const newMessage1 = new Message({
       mid: nanoid(),
       sender,
       reciever,
       text: cryptr.encrypt(text),
+      send_at,
     });
 
     // const newMessage2 = new Message({
