@@ -15,7 +15,9 @@ const server = http.createServer(app);
 initializeSocketIo(server);
 
 app.use(cors({
-  origin: "*"
+  origin: "*",
+  credentials: false,
+  // origin: process.env.FRONTEND_URL || "http://localhost:3000"
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

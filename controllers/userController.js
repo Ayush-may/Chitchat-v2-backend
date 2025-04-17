@@ -3,6 +3,9 @@ const bcrypt = require("bcrypt");
 const nanoid = require("nanoid");
 const jwt = require("jsonwebtoken");
 const Message = require("../models/messageModel");
+const Cryptr = require('cryptr');
+const cryptr = new Cryptr(process.env.ENCRYPT_SECRET);
+
 
 const checkUserExist = (user) => {
   if (!user) throw new Error();
@@ -248,12 +251,21 @@ const getLoggedUserAndSelectedUserMessages = async (req, res) => {
           'recieverData.profile_pic': 1,
         }
       },
-      {
-        $sort: { send_at: 1 } // Sort by the send_at field
-      }
+      { $sort: { send_at: -1 } },  // newest first
+      { $limit: 10 },              // take latest 10
+      { $sort: { send_at: 1 } },
     ]);
 
-    return res.status(200).json(messages);
+    const decryptedMessages = messages.map(msg => {
+      try {
+        msg.text = cryptr.decrypt(msg.text);
+      } catch (err) {
+        // msg.text = '[Decryption Error]';
+      }
+      return msg;
+    });
+
+    return res.status(200).json(decryptedMessages);
   } catch (error) {
     return res.status(400).json(error.message);
   }
@@ -269,7 +281,7 @@ const setLoggedUserAndSelectedUserMessages = async (req, res) => {
       mid: nanoid(),
       sender,
       reciever,
-      text,
+      text: cryptr.encrypt(text),
     });
 
     // const newMessage2 = new Message({
