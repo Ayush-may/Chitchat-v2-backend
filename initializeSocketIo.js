@@ -3,6 +3,7 @@ const userModel = require("./models/userModel");
 
 const map = new Map();
 const mapRev = new Map();
+const connectedWith = new Map()
 
 function initializeSocketIo(server) {
 
@@ -14,10 +15,11 @@ function initializeSocketIo(server) {
  });
 
  io.on('connection', (socket) => {
-  // console.log('Client connected:', socket.id);
+  console.log('Client connected:', socket.id);
 
   socket.on('welcome', (data) => {
    if (socket.id) {
+    socket.uid = data.uid
     console.log('welcome data comes', data)
     updateUserStatus(data.uid, 'online')
     map.set(data.uid, socket.id)
@@ -37,8 +39,14 @@ function initializeSocketIo(server) {
    // user is online
    if (map.has(data.rid)) {
     console.log('user is online')
-    console.log(data)
+
     const receiveSocketId = map.get(data.rid);
+    console.log('diffent persons', socket.connectedWith, data.rid)
+
+    if (socket.connectedWith !== data.rid) {
+     console.log('diffent persons', socket.connectedWith, data.rid)
+     io.to(receiveSocketId).emit('notification_send', { notify: true })
+    }
     io.to(receiveSocketId).emit('message_receive', data)
    }
    // handle offline messages
@@ -48,6 +56,17 @@ function initializeSocketIo(server) {
 
   })
 
+
+  socket.on('connected_with_user', ({ withId }) => {
+   socket.connectedWith = withId;
+   connectedWith.set(socket.uid, withId)
+  })
+
+
+  socket.on('removed_with_user', () => {
+   socket.connectedWith = null;
+   connectedWith.delete(socket.uid)
+  })
 
 
   socket.on('logout_user', (data) => {
