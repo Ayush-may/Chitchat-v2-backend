@@ -18,36 +18,48 @@ function initializeSocketIo(server) {
   console.log('Client connected:', socket.id);
 
   socket.on('welcome', (data) => {
-   if (socket.id) {
-    socket.uid = data.uid
-    console.log('welcome data comes', data)
-    updateUserStatus(data.uid, 'online')
-    map.set(data.uid, socket.id)
-    mapRev.set(socket.id, data.uid)
-   }
+   const { uid } = data;
+   const { id } = socket
+
+   socket.uid = uid
+   updateUserStatus(uid, 'online')
+   map.set(uid, id)
+   mapRev.set(id, uid)
+
   })
 
 
-
-  // socket.on('message', (data) => {
-  //  console.log('Message from client:', data);
-  //  socket.broadcast.emit('message', data); 
-  // });
-
-
+  //**
+  // Triggers when user send a message to another user
+  // sender sends sid , rid , text as message 
+  // sid is sender id
+  // rid is receiver id
+  // send_at timing of message send
+  // is_read - bydefault 'unread'
+  // */
   socket.on('message_send', (data) => {
    // user is online
-   if (map.has(data.rid)) {
+   const { sid, rid, text, send_at, is_read } = data
+   const isUserOnline = map.has(rid)
+   const uid = socket.uid
+
+   if (isUserOnline) {
     console.log('user is online')
 
-    const receiveSocketId = map.get(data.rid);
-    console.log('diffent persons', socket.connectedWith, data.rid)
+    const onlineSelectedUserSocketId = map.get(rid)
+    const selectedUserId = socket.selectedUserId;
+    const isTalkingToSameUser = connectedWith.get(selectedUserId) == uid;
 
-    if (socket.connectedWith !== data.rid) {
-     console.log('diffent persons', socket.connectedWith, data.rid)
-     io.to(receiveSocketId).emit('notification_send', { notify: true })
+
+    console.log(connectedWith.get(selectedUserId) + "  " + uid)
+    console.log(connectedWith.get(selectedUserId) == uid)
+
+    if (!isTalkingToSameUser) {
+     console.log("notifications send : ", onlineSelectedUserSocketId)
+     io.to(onlineSelectedUserSocketId).emit('notification_send', data)
     }
-    io.to(receiveSocketId).emit('message_receive', data)
+
+    io.to(onlineSelectedUserSocketId).emit('message_receive', data)
    }
    // handle offline messages
    else {
@@ -57,12 +69,15 @@ function initializeSocketIo(server) {
   })
 
 
-  socket.on('connected_with_user', ({ withId }) => {
-   socket.connectedWith = withId;
-   connectedWith.set(socket.uid, withId)
+  // Triggers when user select a user
+  socket.on('selected_user', ({ selectedUserId }) => {
+   socket.selectedUserId = selectedUserId;
+   connectedWith.set(socket.uid, selectedUserId)
+   console.log('selected user ' + socket.selectedUserId)
   })
 
 
+  // Triggers when a user leaves
   socket.on('removed_with_user', () => {
    socket.connectedWith = null;
    connectedWith.delete(socket.uid)
