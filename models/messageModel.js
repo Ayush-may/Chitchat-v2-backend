@@ -28,6 +28,11 @@ const messageSchema = mongoose.Schema({
   text: {
     type: String,
     required: true
+  },
+  isImage : {
+    type: String,
+    required: false,
+    default : null,
   }
   ,
   send_at: {

@@ -8,11 +8,14 @@ const WebSocket = require("ws");
 const http = require("http");
 const initializeWebSocket = require("./utils/initializeWebSocket");
 const { initializeSocketIo } = require("./initializeSocketIo");
+const path = require('path')
 
 const app = express();
 const server = http.createServer(app);
 
 initializeSocketIo(server);
+
+app.use('/storage/public', express.static(path.join(__dirname, 'storage/public')));
 
 app.use(cors({
   origin: "*",

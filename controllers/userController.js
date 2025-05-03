@@ -4,6 +4,7 @@ const nanoid = require("nanoid");
 const jwt = require("jsonwebtoken");
 const Message = require("../models/messageModel");
 const Cryptr = require('cryptr');
+const redis = require('../config/redis')
 const cryptr = new Cryptr(process.env.ENCRYPT_SECRET);
 
 
@@ -139,6 +140,7 @@ const addFriendByUid = async (req, res) => {
     await user.save();
     await frnd.save();
 
+    await redis.del(`friends:${user.uid}`)
     return res.status(200).json({ message: "Added to friends" });
   }
   catch (error) {
@@ -149,6 +151,10 @@ const addFriendByUid = async (req, res) => {
 const getLoggedUserFriends = async (req, res) => {
   try {
     const uid = req.params.uid;
+
+    const cached = await redis.get(`friends:${uid}`);
+    if (cached) return res.status(200).json(JSON.parse(cached));
+
     const user = await User.findOne({ uid });
 
     if (!user || user.friends.length == 0)
@@ -158,6 +164,8 @@ const getLoggedUserFriends = async (req, res) => {
       "uid username status profile_pic created_at is_online"
     );
 
+
+    await redis.set(`friends:${uid}`, JSON.stringify(friends))
     return res.status(200).json(friends);
   } catch (error) {
     return res.status(400).json(error.message);
@@ -190,15 +198,10 @@ const getLoggedUserAndSelectedUserMessages = async (req, res) => {
   try {
     const sender = req.params.loggedUid;
     const reciever = req.params.selectedUid;
+    const redisKey = `chat:${sender}:${reciever}`
 
-    // const messages = await Message.find({
-    //   $or:
-    //     [
-    //       { sender, reciever },
-    //       { sender: reciever, reciever: sender },
-    //     ]
-    // })
-    //   .sort({ send_at: 1 });
+    // const cache = await redis.get(redisKey)
+    // if (cache) return res.status(200).json(JSON.parse(cache));
 
     const messages = await Message.aggregate([
       {
@@ -243,7 +246,8 @@ const getLoggedUserAndSelectedUserMessages = async (req, res) => {
           mid: 1,
           sender: 1, // Include sender ID
           reciever: 1, // Include receiver ID
-          text: 1, // Include message text
+          text: 1, // Include message text,
+          isImage : 1,
           send_at: 1, // Include send timestamp,
           'senderData.uid': 1, // Include uid from senderData
           'senderData.username': 1, // Include username from senderData
@@ -267,6 +271,7 @@ const getLoggedUserAndSelectedUserMessages = async (req, res) => {
       return msg;
     });
 
+    // redis.set(redisKey, JSON.stringify(decryptedMessages))
     return res.status(200).json(decryptedMessages);
   } catch (error) {
     return res.status(400).json(error.message);
@@ -288,18 +293,8 @@ const setLoggedUserAndSelectedUserMessages = async (req, res) => {
       send_at,
     });
 
-    // const newMessage2 = new Message({
-    //   mid: nanoid(),
-    //   sender: reciever,
-    //   reciever: sender,
-    //   text,
-    // });
-
     await newMessage1.save();
-    // await newMessage2.save();
-
     return res.status(200).json(newMessage1);
-    // return res.status(200).json([newMessage1, newMessage2]);
   } catch (error) {
     return res.status(400).json(error.message);
   }
